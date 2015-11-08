@@ -25,6 +25,8 @@
     "test": "mocha"
   },
   "dependencies": {
+    "diff-json": "^0.1.11",
+    "unique-filename": "^1.0.0",
     "yeoman-generator": "^0.17"
   },
   "devDependencies": {
