@@ -3,6 +3,8 @@ var util = require('util');
 var path = require('path');
 var yeoman = require('yeoman-generator');
 var fs = require('fs');
+var changesets = require('diff-json');
+var uniqueFilename = require('unique-filename');
 
 
 var TestGenerator = module.exports = function TestGenerator(args, options, config) {
@@ -85,12 +87,25 @@ TestGenerator.prototype.askFor = function askFor() {
 };
 
 TestGenerator.prototype.app = function projectFiles() {
-  var fileExists = fs.existsSync(path.resolve(process.cwd(), this.file));
+  var fileExists = fs.existsSync(path.resolve(process.cwd(), this.file)), pkg, tmpl_pkg, randomTmpfile;
 
   // scaffold out the tests based on env
   if (this.environment === 'Node') {
     this.template('_spec-node.js', 'spec/' + this.file);
-    this.template('_package.json', 'package.json');
+    if( fs.exists('package.json') ) {
+      randomTmpfile = uniqueFilename(os.tmpdir());
+      this.template('_package.json', randomTmpfile);
+      pkg = fs.readJSON('package.json');
+      tmpl_pkg = fs.readJSON(randomTmpfile);
+      ['dependencies', 'devDependencies'].forEach( function(v) {
+        diffs = changesets.diff( pkg[v], tmpl_pkg[v] );
+        changesets.applyChange( pkg[v], diffs);
+      });
+      fs.writeJSON(pkg, 'package.json');
+      fs.delete(randomTmpfile);
+    } else {
+      this.template('_package.json', 'package.json');
+    }
   } else if (this.environment === 'browser') {
     this.template('_index.html', 'index.html');
     this.template('_spec-browser.js', 'spec/' + this.file);
