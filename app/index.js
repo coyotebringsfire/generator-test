@@ -3,9 +3,6 @@ var util = require('util');
 var path = require('path');
 var yeoman = require('yeoman-generator');
 var fs = require('fs');
-var changesets = require('diff-json');
-var uniqueFilename = require('unique-filename');
-
 
 var TestGenerator = module.exports = function TestGenerator(args, options, config) {
   yeoman.generators.Base.apply(this, arguments);
@@ -87,22 +84,15 @@ TestGenerator.prototype.askFor = function askFor() {
 };
 
 TestGenerator.prototype.app = function projectFiles() {
-  var fileExists = fs.existsSync(path.resolve(process.cwd(), this.file)), pkg, tmpl_pkg, randomTmpfile;
+  var fileExists = fs.existsSync(path.resolve(process.cwd(), this.file)), pkg, tmpl_pkg, randomTmpfile, randomTmpDir;
 
   // scaffold out the tests based on env
   if (this.environment === 'Node') {
     this.template('_spec-node.js', 'spec/' + this.file);
-    if( fs.exists('package.json') ) {
-      randomTmpfile = uniqueFilename(os.tmpdir());
-      this.template('_package.json', randomTmpfile);
-      pkg = fs.readJSON('package.json');
-      tmpl_pkg = fs.readJSON(randomTmpfile);
-      ['dependencies', 'devDependencies'].forEach( function(v) {
-        diffs = changesets.diff( pkg[v], tmpl_pkg[v] );
-        changesets.applyChange( pkg[v], diffs);
-      });
-      fs.writeJSON(pkg, 'package.json');
-      fs.delete(randomTmpfile);
+    if( fs.existsSync(path.resolve(process.cwd(), 'package.json')) ) {
+      pkg = JSON.parse( this.readFileAsString( path.resolve( process.cwd(), 'package.json' ) ) );
+      pkg.scripts.test = "mocha ./spec/",
+      fs.writeFileSync('package.json', JSON.stringify(pkg, null, 2) );
     } else {
       this.template('_package.json', 'package.json');
     }
